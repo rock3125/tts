@@ -10,3 +10,6 @@ docker build -t tts .
 echo "Hello there Peter." | docker run --rm -i tts | aplay
 ```
 
+## sample
+try a [sample](sample/test.wav)
+
