@@ -7,7 +7,7 @@ docker build -t tts .
 
 ## run
 ```
-echo "Hello there Peter." | docker run --rm -i tts | aplay
+echo "Hello there Peter." | docker run --rm -i tts > test.mp3
 ```
 
 ## sample
