@@ -9,6 +9,11 @@ RUN echo "deb mirror://mirrors.ubuntu.com/mirrors.txt xenial main restricted uni
         build-essential \
         curl \
         python3 \
+        libasound2-plugins \
+        libsox-fmt-all \
+        libsox-dev \
+        ffmpeg \
+        sox \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

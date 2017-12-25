@@ -19,8 +19,12 @@ if __name__ == '__main__' :
     # excute tts
     subprocess.run(['./run-uk.sh'])
 
+    # convert to mp3
+    with open(os.devnull, 'w') as f_null:
+        subprocess.call(["/usr/bin/ffmpeg", "-i", "./output-uk.wav", "./output-uk.mp3"], stdout=f_null, stderr=f_null)
+
     # write output to stdout
-    with open('./output-uk.wav', 'rb') as reader:
+    with open('./output-uk.mp3', 'rb') as reader:
         sys.stdout = os.fdopen(1, "wb")
         sys.stdout.write(reader.read())
 
