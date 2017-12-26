@@ -5,11 +5,16 @@
 docker build -t tts .
 ```
 
-## run
+## run service on port 81
 ```
-echo "Hello there Peter." | docker run --rm -i tts > test.mp3
+docker run -d --rm -p 81:80 --name tts -i tts
+```
+
+and then hit the service
+
+```
+curl http://localhost:8080/api/v1/tts/Test --output - > test.mp3
 ```
 
 ## sample
-try a ![sample](sample/test.wav)
-
+listen to a [sample](sample/test.wav) produced by this system

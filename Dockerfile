@@ -9,6 +9,8 @@ RUN echo "deb mirror://mirrors.ubuntu.com/mirrors.txt xenial main restricted uni
         build-essential \
         curl \
         python3 \
+        python3-pip \
+        python3-setuptools \
         libasound2-plugins \
         libsox-fmt-all \
         libsox-dev \
@@ -23,9 +25,15 @@ COPY . /app
 WORKDIR /app
 RUN ./do_build
 
-
 WORKDIR /app
 
-CMD ["./tts.py"]
-# CMD ["./run-uk.sh"]
+RUN pip3 install -r requirements.txt
 
+EXPOSE 80
+
+RUN pip3 --no-cache-dir install gunicorn
+
+# command line version
+# CMD ["./tts.py"]
+
+CMD ["gunicorn", "--access-logfile=-", "-t", "5", "-b", "0.0.0.0:80", "server:app"]
