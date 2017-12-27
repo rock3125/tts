@@ -28,7 +28,7 @@ def index():
 
 # curl http://localhost:8080/api/v1/tts/Test%20Peter --output - > test.mp3
 @app.route('/api/v1/tts/<text>', methods=['GET'])
-def get_speech_to_text(text):
+def text_to_speech(text):
 
     # copy incoming text to say.txt
     job_id = uuid.uuid4().__str__()
