@@ -1,89 +1,96 @@
-import os
-import json
-import logging
-import sys
-import subprocess
+#!/usr/bin/python3
+
+import http.server
+import socketserver
+from urllib.parse import urlparse, unquote
+from TTS.utils.manage import ModelManager
+from TTS.utils.synthesizer import Synthesizer
 import uuid
+import os
 
-from flask import Flask, request
-from flask_cors import CORS
+# usage: GET http://localhost:8080/?t=test%20me
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-base_dir = os.path.dirname(__file__)
-app = Flask(__name__)
-CORS(app)
+# tts --text "$1" --model_name tts_models/en/vctk/vits --out_path test.wav --speaker_idx p343 > /dev/null
+PORT = 8080
 
+# load model manager
+manager = ModelManager()
 
-@app.errorhandler(Exception)
-def _(error):
-    import traceback
-    logging.error(traceback.format_exc())
-    return json.dumps({'error': error.__str__()}), 510, {'ContentType': 'application/javascript'}
+speakers_file_path = ""
+language_ids_file_path = ""
+vocoder_path = ""
+vocoder_config_path = ""
+encoder_path = ""
+encoder_config_path = ""
+use_cuda = False
 
+model_path, config_path, model_item = manager.download_model("tts_models/en/vctk/vits")
 
-@app.route('/', methods=['GET'])
-def index():
-    return '<html><body>TTS</body></html>', 200, {'ContentType': 'text/html'}
+# load models
+synthesizer = Synthesizer(
+    model_path,
+    config_path,
+    speakers_file_path,
+    language_ids_file_path,
+    vocoder_path,
+    vocoder_config_path,
+    encoder_path,
+    encoder_config_path,
+    use_cuda,
+)
 
+text = "I love Sherry."
+out_path = "/home/rock/test123.wav"
 
-# curl http://localhost:8080/api/v1/tts/Test%20Peter --output - > test.mp3
-@app.route('/api/v1/tts/<text>', methods=['GET'])
-def text_to_speech(text):
-
-    # copy incoming text to say.txt
-    job_id = uuid.uuid4().__str__()
-    text_file = os.path.join('/tmp/', job_id + '.txt')
-    with open(text_file, 'wt') as writer:
-        writer.write(text)
-
-    # excute tts
-    in_file = os.path.join('/tmp/', job_id + '.wav')
-    subprocess.run([os.path.join(base_dir, 'run.sh'), text_file, in_file])
-
-    # convert to mp3
-    out_file = os.path.join('/tmp/', job_id + '.mp3')
-    with open(os.devnull, 'w') as f_null:
-        subprocess.call(["/usr/bin/ffmpeg", "-i", in_file, out_file], stdout=f_null, stderr=f_null)
-
-    # write output to stdout
-    if os.path.isfile(out_file):
-        print('writing ' + out_file)
-        with open(out_file, 'rb') as reader:
-            return reader.read(), 200, {'ContentType': 'audio/mpeg'}
-    else:
-        return json.dumps({'error': 'file not produced'}), 510, {'ContentType': 'application/javascript'}
+speaker_idx = "p343"
+language_idx = ""
+speaker_wav = None
+reference_wav = None
+capacitron_style_wav = None
+capacitron_style_text = None
+reference_speaker_idx = None
 
 
-# curl -X POST -H "Content-Type: plain/text" --data "Say something" http://localhost:8081/api/v1/tts --output - > test.mp3
-@app.route('/api/v1/tts', methods=['POST'])
-def text_to_speech_2():
+class TTSHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    # usage: GET http://localhost:8080/?t=test%20me
+    def do_GET(self):
+        query = urlparse(self.path).query
+        if query is not None and (len(query) > 0 and "=" in query):
+            parts = query.split("=")
+            query_components = dict()
+            query_components[parts[0]] = unquote(parts[1])
+            if "t" not in query_components:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b"parameter t missing")
+            else:
+                # kick it
+                wav = synthesizer.tts(
+                    query_components["t"],
+                    speaker_idx,
+                    language_idx,
+                    speaker_wav,
+                    reference_wav=reference_wav,
+                    style_wav=capacitron_style_wav,
+                    style_text=capacitron_style_text,
+                    reference_speaker_name=reference_speaker_idx,
+                )
+                out_filename = "/tmp/" + str(uuid.uuid4()) + ".wav"
+                synthesizer.save_wav(wav, out_filename)
+                with open(out_filename, 'rb') as reader:
+                    self.send_response(200)
+                    self.send_header('Content-type', 'audio/x-wav')
+                    self.end_headers()
+                    self.wfile.write(reader.read())
+                os.remove(out_filename)
+        else:
+            self.send_response(500)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b"parameter t=<text to speak> missing")
 
-    text = request.data.decode('UTF-8')  # get raw request data
 
-    # copy incoming text to say.txt
-    job_id = uuid.uuid4().__str__()
-    text_file = os.path.join('/tmp/', job_id + '.txt')
-    with open(text_file, 'wt') as writer:
-        writer.write(text)
-
-    # excute tts
-    in_file = os.path.join('/tmp/', job_id + '.wav')
-    subprocess.run([os.path.join(base_dir, 'run.sh'), text_file, in_file])
-
-    # convert to mp3
-    out_file = os.path.join('/tmp/', job_id + '.mp3')
-    with open(os.devnull, 'w') as f_null:
-        subprocess.call(["/usr/bin/ffmpeg", "-i", in_file, out_file], stdout=f_null, stderr=f_null)
-
-    # write output to stdout
-    if os.path.isfile(out_file):
-        print('writing ' + out_file)
-        with open(out_file, 'rb') as reader:
-            return reader.read(), 200, {'ContentType': 'audio/mpeg'}
-    else:
-        return json.dumps({'error': 'file not produced'}), 510, {'ContentType': 'application/javascript'}
-
-
-if __name__ == '__main__':
-    logging.info("!!! RUNNING in TEST/DEBUG mode, not PRODUCTION !!!")
-    app.run(port=8081)
+with socketserver.TCPServer(("", PORT), TTSHTTPRequestHandler) as httpd:
+    print("TTS server on port", PORT)
+    httpd.serve_forever()

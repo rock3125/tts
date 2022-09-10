@@ -1,20 +1,16 @@
-# Simple text to speech docker container using EnglishHTSVoices
-
-## build
+## TTS - text to speech in docker
+from `https://github.com/coqui-ai/TTS`
 ```
-docker build -t tts .
-```
-
-## run service on port 81
-```
-docker run -d --rm -p 81:80 --name tts -i tts
+docker build -t tts:1.0.0 .
 ```
 
-and then hit the service
-
+## run
 ```
-curl http://localhost:8080/api/v1/tts/Test --output - > test.mp3
+docker run --rm --name tts -p 8080:8080 tts:1.0.0
 ```
 
-## sample
-listen to a [sample](sample/test.wav) produced by this system
+## test
+```
+curl http://localhost:8080?t=This%20is%20a%20larger%20test%20of%20Speech%20to%20text -o test.wav
+aplay test.wav
+```

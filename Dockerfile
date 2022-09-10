@@ -1,39 +1,23 @@
-FROM ubuntu:16.04
+FROM ubuntu:focal
 
-ENV LANG="C.UTF-8"
+ENV TZ=Europe/London
 
-RUN echo "deb mirror://mirrors.ubuntu.com/mirrors.txt xenial main restricted universe multiverse" > /etc/apt/sources.list && \
-    echo "deb mirror://mirrors.ubuntu.com/mirrors.txt xenial-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
-    echo "deb mirror://mirrors.ubuntu.com/mirrors.txt xenial-security main restricted universe multiverse" >> /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        curl \
-        python3 \
-        python3-pip \
-        python3-setuptools \
-        libasound2-plugins \
-        libsox-fmt-all \
-        libsox-dev \
-        ffmpeg \
-        sox \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# set timezone
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
+RUN echo $TZ > /etc/timezone
 
-COPY . /app
+RUN apt update -y
+RUN apt upgrade -y
 
-WORKDIR /app
-RUN ./do_build
+RUN apt install sox espeak-ng python3-pip -yqq
+RUN pip3 install TTS==0.8.0
 
+RUN mkdir -p /app
+COPY server.py /app/server.py
 WORKDIR /app
 
-RUN pip3 install -r requirements.txt
+COPY tts-model.tgz /app/tts-model.tgz
+RUN mkdir -p /root/.local/share/tts/tts_models--en--vctk--vits
+RUN tar xzf /app/tts-model.tgz -C /root/.local/share/tts/tts_models--en--vctk--vits
 
-EXPOSE 80
-
-RUN pip3 --no-cache-dir install gunicorn
-
-# command line version
-# CMD ["./tts.py"]
-
-CMD ["gunicorn", "--access-logfile=-", "-t", "5", "-b", "0.0.0.0:80", "server:app"]
+CMD /app/server.py
