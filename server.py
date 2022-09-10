@@ -39,9 +39,6 @@ synthesizer = Synthesizer(
     use_cuda,
 )
 
-text = "I love Sherry."
-out_path = "/home/rock/test123.wav"
-
 speaker_idx = "p343"
 language_idx = ""
 speaker_wav = None
