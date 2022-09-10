@@ -1,6 +1,2 @@
-build/
-say.txt
-output*
 .env
-.idea
-
+venv
