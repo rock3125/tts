@@ -16,8 +16,8 @@ RUN mkdir -p /app
 COPY server.py /app/server.py
 WORKDIR /app
 
-COPY tts-model.tgz /app/tts-model.tgz
-RUN mkdir -p /root/.local/share/tts/tts_models--en--vctk--vits
-RUN tar xzf /app/tts-model.tgz -C /root/.local/share/tts/tts_models--en--vctk--vits
+#COPY tts-model.tgz /app/tts-model.tgz
+#RUN mkdir -p /root/.local/share/tts/tts_models--en--vctk--vits
+#RUN tar xzf /app/tts-model.tgz -C /root/.local/share/tts/tts_models--en--vctk--vits
 
 CMD /app/server.py
