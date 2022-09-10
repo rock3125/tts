@@ -2,7 +2,7 @@
 
 # https://github.com/coqui-ai/TTS
 
-U=rock
+U=$USER
 D="/home/$U/.local/share/tts/tts_models--en--vctk--vits"
 mkdir -p "$D"
 if [ ! -f "$D/model_file.pth" ]; then
