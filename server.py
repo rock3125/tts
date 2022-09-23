@@ -7,6 +7,7 @@ from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
 import uuid
 import os
+import sys
 
 # usage: GET http://localhost:8080/?t=test%20me
 
@@ -52,7 +53,9 @@ class TTSHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     # usage: GET http://localhost:8080/?t=test%20me
     def do_GET(self):
         query = urlparse(self.path).query
-        if query is not None and (len(query) > 0 and "=" in query):
+        print(query)
+        sys.stdout.flush() 
+        if query is not None and (len(query) > 0 and "t=" in query):
             parts = query.split("=")
             query_components = dict()
             query_components[parts[0]] = unquote(parts[1])
@@ -64,7 +67,7 @@ class TTSHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 # kick it
                 wav = synthesizer.tts(
-                    query_components["t"],
+                    query_components["t"].replace('+', ' '),
                     speaker_idx,
                     language_idx,
                     speaker_wav,
@@ -82,10 +85,56 @@ class TTSHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(reader.read())
                 os.remove(out_filename)
         else:
-            self.send_response(500)
-            self.send_header('Content-type', 'text/plain')
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b"parameter t=<text to speak> missing")
+            self.wfile.write(b"<html>\n")
+            self.wfile.write(b"<head>\n")
+            self.wfile.write(b"<title>tts</title>\n")
+            self.wfile.write(b"<style>\n")
+            self.wfile.write(b"body {\n")
+            self.wfile.write(b"  padding: 20px;\n")
+            self.wfile.write(b"}\n")
+            self.wfile.write(b"input[type=text] {\n")
+            self.wfile.write(b"  width: 50%;\n")
+            self.wfile.write(b"  padding: 12px 20px;\n")
+            self.wfile.write(b"  margin: 8px 0;\n")
+            self.wfile.write(b"  box-sizing: border-box;\n")
+            self.wfile.write(b"  font-size: 16px;\n")
+            self.wfile.write(b"}\n")
+            self.wfile.write(b"h1 { color: #111; font-family: 'Helvetica Neue', sans-serif; font-size: 25px; font-weight: bold; letter-spacing: -1px; line-height: 1; }\n")
+            self.wfile.write(b"button {\n")
+            self.wfile.write(b"  background-color: #4CAF50; /* Green */\n")
+            self.wfile.write(b"  border: none;\n")
+            self.wfile.write(b"  color: white;\n")
+            self.wfile.write(b"  padding: 15px 32px;\n")
+            self.wfile.write(b"  text-align: center;\n")
+            self.wfile.write(b"  text-decoration: none;\n")
+            self.wfile.write(b"  display: inline-block;\n")
+            self.wfile.write(b"  font-size: 16px;\n")
+            self.wfile.write(b"}\n")
+            self.wfile.write(b"</style></head>\n")
+            self.wfile.write(b"<body>\n")
+            self.wfile.write(b"  <h1>TTS test form</h1>\n")
+            self.wfile.write(b"  <form id='tts-form' action='/' method='GET'>\n")
+            self.wfile.write(b"    <input type='text' id='t' name='t' value='' />\n")
+            self.wfile.write(b"    <button onClick='javascript:go()'>say it</button>\n")
+            self.wfile.write(b"  </form>\n")
+            self.wfile.write(b"<script>\n")
+            self.wfile.write(b"  function go() {\n")
+            self.wfile.write(b"    let form = document.getElementById('tts-form');\n")
+            self.wfile.write(b"    let speech = document.getElementById('t').value;\n")
+            self.wfile.write(b"    if (speech && speech.length > 0) {\n")
+            self.wfile.write(b"      form.submit();\n")
+            self.wfile.write(b"    }\n")
+            self.wfile.write(b"  }\n")
+            self.wfile.write(b"  function focus() {\n")
+            self.wfile.write(b"     document.getElementById('t').focus();\n")
+            self.wfile.write(b"  }\n")
+            self.wfile.write(b"  document.addEventListener('DOMContentLoaded', focus);\n")
+            self.wfile.write(b"</script>\n")
+            self.wfile.write(b"</body>\n")
+            self.wfile.write(b"</html>\n")
 
 
 with socketserver.TCPServer(("", PORT), TTSHTTPRequestHandler) as httpd:

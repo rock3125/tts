@@ -13,12 +13,12 @@ RUN apt install sox espeak-ng python3-pip -yqq
 RUN pip3 install TTS==0.8.0
 
 RUN mkdir -p /app
-COPY server.py /app/server.py
 WORKDIR /app
 
 # download the model into this container
 COPY setup-model.py /app/setup-model.py
 RUN python3 setup-model.py
+COPY server.py /app/server.py
 
 # set up a local version of the model
 #COPY tts-model.tgz /app/tts-model.tgz
