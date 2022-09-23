@@ -21,3 +21,4 @@ or test using `docker-speak.sh`
 ./docker-speak.sh "Testing the docker build for speech output."
 ```
 
+or visit `http://localhost:8080/` in your browser.
