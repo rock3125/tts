@@ -26,5 +26,5 @@ rawurlencode() {
 
 rm -f test.wav
 text=$(rawurlencode "$1")
-curl http://localhost:8080?t=$text -o test.wav
-aplay test.wav
+curl -s http://localhost:8080?t=$text -o test.wav
+aplay -q test.wav
